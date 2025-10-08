@@ -1,8 +1,10 @@
+from datetime import datetime
 import requests
 import yaml
 import my_logging as logging  # Make sure this points to your custom log_util.py
 from bs4 import BeautifulSoup
 from my_logging import setup_logging
+from calendar_util import create_event, save_ics_file
 
 # Setup logging for the Service Outage Monitor app
 logger = setup_logging("service-outage-monitor")
@@ -41,6 +43,10 @@ def scrape_outages(url, area_keywords, location_keywords, status_inactive_keywor
             if location.lower().startswith(status_inactive_keyword.lower()):
                 status = "Cancelled"
             
+            # Description should be the text from the Location column (third column)
+            description = location  # Use location as description
+            # logging.debug(f"Description: {description}")
+
             # Filter by Area and Location
             if any(area_kw.lower() in area.lower() for area_kw in area_keywords) and \
                any(loc_kw.lower() in location.lower() for loc_kw in location_keywords):
@@ -49,20 +55,23 @@ def scrape_outages(url, area_keywords, location_keywords, status_inactive_keywor
                     "area": area,
                     "location": location,
                     "time": time,
-                    "status": status  # Add status to the log entry
+                    "status": status,  # Add status to the log entry
+                    "description": description  # Add description
                 })
     return filtered_outages
-
 
 def main():
     config = load_config()  # Load config
     providers = config.get("websites", [])
+    
+    all_events = []
     
     for provider in providers:
         url = provider['url']
         area_keywords = provider.get('area_keywords', [])
         location_keywords = provider.get('location_keywords', [])
         status_inactive_keyword = provider['status_inactive_keyword']
+        title = provider['title']
         
         # Scrape data
         outages = scrape_outages(url, area_keywords, location_keywords, status_inactive_keyword)
@@ -70,13 +79,26 @@ def main():
         # Log something
         logger.info(f"Starting to scrape {url}")
 
-        # Log the results
-        if outages:
-            logger.info(f"Found {len(outages)} outages for {url}")
-            for outage in outages:
-                logger.info(f"Status: {outage['status']}, Date: {outage['date']}, Time: {outage['time']}, Area: {outage['area']}, Location: {outage['location']}")
-        else:
-            logger.info(f"No matching outages found for {url}")
+        # Process the events and create ICS file
+        for outage in outages:
+            event = create_event(
+                date=outage['date'],
+                time=outage['time'],
+                title=title,
+                status=outage['status'],
+                location=outage['location'],
+                description=outage['description'],
+                logger=logger  # Pass logger to the event creation function
+            )
+            if event:
+                all_events.append(event)
 
+    if all_events:
+        # Save ICS file
+        filename = f"/root/projects/logs/service_outage_monitor_{datetime.now().strftime('%Y%m%d')}.ics"
+        save_ics_file(all_events, filename, logger=logger)  # Pass logger to save function
+    else:
+        logger.info("No matching outages found. No ICS file generated.")
+        
 if __name__ == "__main__":
     main()
