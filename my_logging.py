@@ -20,7 +20,7 @@ def setup_logging(app_name, base_dir="~/projects"):
 
     # Create a logger
     logger = logging.getLogger(app_name)
-    logger.setLevel(logging.INFO)  # Set default level to INFO
+    logger.setLevel(logging.DEBUG)  # Set log level to DEBUG for detailed logs
 
     # Create handlers for both file and console logging
     file_handler = logging.FileHandler(log_file)
@@ -34,5 +34,8 @@ def setup_logging(app_name, base_dir="~/projects"):
     # Add handlers to the logger
     logger.addHandler(file_handler)
     logger.addHandler(console_handler)
+
+    # Debugging the logger setup
+    logger.debug("Logger initialized with DEBUG level")
 
     return logger
