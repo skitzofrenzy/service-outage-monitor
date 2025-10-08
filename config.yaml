@@ -13,6 +13,7 @@ websites:
       - "Moka"
       - "Hummingbird" 
       - "Fernandez" 
+      - "Saddle" 
     status_inactive_keyword: "CANCELLED"
     title: "TTEC"
     schedule: "0 8 * * 1"  # Cron: every Monday at 8:00 AM
