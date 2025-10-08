@@ -1,48 +1,25 @@
-# Configure each provider's page and how to parse it.
-# For each provider, set your area keywords the way THEY label your area.
-# Tips: include multiple variants and abbreviations.
-timezone: America/Port_of_Spain
-
-providers:
-  - name: T&TEC (Electricity)            # EXAMPLE — replace selector/regex after inspecting the page
-    service: electricity
-    url: "https://example-utility.tt/outages"   # TODO: replace with real URL
-    area_keywords: ["San Juan", "Barataria", "Aranguez", "Arima"]  # edit per site
-    parsing:
-      mode: css                           # css | regex
-      item_selector: "article.outage, .post"    # CSS for each outage item
-      date_selector: ".date, time"        # CSS inside each item that holds date text
-      text_selector: ".content, .body, p" # CSS for descriptive text (used to search area keywords)
-      # If no date_selector is reliable, use regex:
-      # date_regex: "(\d{1,2}\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}).{0,40}?(\d{1,2}:\d{2}\s*(AM|PM))?.{0,10}?-?.{0,10}?(\d{1,2}:\d{2}\s*(AM|PM))?"
-      date_formats:                        # Optional explicit formats to try before free-form parsing
-        - "DD MMM YYYY HH:mm"
-        - "DD MMM YYYY"
-      default_start_time: "08:00"          # if only a date is posted
-      default_end_time: "17:00"
-
-  - name: WASA (Water)                    # EXAMPLE — replace selectors/regex as needed
-    service: water
-    url: "https://example-water.tt/notices"
-    area_keywords: ["St. Joseph", "Curepe", "Valsayn"]
-    parsing:
-      mode: css
-      item_selector: ".notice, .card"
-      date_selector: ".notice-date"
-      text_selector: ".notice-body"
-      date_formats: ["DD MMM YYYY HH:mm", "DD MMM YYYY"]
-      default_start_time: "06:00"
-      default_end_time: "18:00"
-
-  - name: Flow (Internet)                 # EXAMPLE
-    service: internet
-    url: "https://example-isp.tt/maintenance"
-    area_keywords: ["San Juan", "Port of Spain", "Diego Martin"]
-    parsing:
-      mode: css
-      item_selector: ".maintenance-item"
-      date_selector: ".when"
-      text_selector: ".description"
-      date_formats: ["YYYY-MM-DD HH:mm", "YYYY-MM-DD"]
-      default_start_time: "01:00"
-      default_end_time: "05:00"
+# config.yaml
+websites:
+  - url: "https://ttec.co.tt/cis/outages_public.html"
+    area_keywords:
+      - "north"
+      - "east"
+      # - "central"
+      # - "south"
+      # - "west"
+      # - "tobago"
+    location_keywords:
+      - "long Circular"
+      - "Perseverance"
+      - "Moka"
+      - "Hummingbird" 
+    status_inactive_keyword: "CANCELLED"
+    title: "TTEC"
+    schedule: "0 8 * * 1"  # Cron: every Monday at 8:00 AM
+  # - url: "https://another-outage-site.com"
+  #   area_keywords:
+  #     - "central"
+  #   location_keywords:
+  #     - "san juan"
+  #     - "chaguanas"
+  #   schedule: "0 9 * * 2"  # Cron: every Tuesday at 9:00 AM
