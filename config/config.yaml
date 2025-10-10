@@ -1,0 +1,27 @@
+# config.yaml
+websites:
+  - id: "ttec_north_east"
+    title: "TTEC"
+    url: "https://ttec.co.tt/cis/outages_public.html"
+    area_keywords:
+      - "north"
+      - "east"
+    location_keywords:
+      - "Perseverance"
+      - "Moka"
+      - "Fernandez"
+      - "Saddle"
+    status_inactive_keyword: "CANCELLED"
+    schedule: "0 8 * * 1"
+  - id: "ttec_east_only"
+    title: "TTEC"
+    url: "https://ttec.co.tt/cis/outages_public.html"
+    area_keywords:
+      - "east"
+    location_keywords:
+      - "Hummingbird"
+      - "Ojoe"
+      - "Foster"
+      - "Cumuto"
+    status_inactive_keyword: "CANCELLED"
+    schedule: "0 8 * * 1"
