@@ -2,7 +2,7 @@
 import logging
 import os
 
-def setup_logging(app_name, base_dir="~/projects"):
+def setup_logging(app_name, base_dir="./"):
     base_dir = os.path.expanduser(base_dir)
     logs_dir = os.path.join(base_dir, "logs")
     os.makedirs(logs_dir, exist_ok=True)
