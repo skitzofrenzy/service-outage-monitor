@@ -3,12 +3,12 @@ from datetime import datetime
 from html import escape
 import yaml
 
-from utils.my_logging import setup_logging
-from utils.env_util import recipients_for_provider
-from scraping.ttec_scraper import scrape_outages
-from ics_generator.calendar_util import create_event, save_ics_file
-from mailer.email_util import send_email_with_attachment
-from mailer.email_format_util import format_events_as_html, format_criteria_table
+from src.utils.my_logging import setup_logging
+from src.utils.env_util import recipients_for_provider
+from src.scraping.ttec_scraper import scrape_outages
+from src.ics_generator.calendar_util import create_event, save_ics_file
+from src.mailer.email_util import send_email_with_attachment
+from src.mailer.email_format_util import format_events_as_html, format_criteria_table
 
 logger = setup_logging("service-outage-monitor")
 

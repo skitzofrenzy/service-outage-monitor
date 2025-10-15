@@ -28,16 +28,16 @@ def build_ics(events, tzname="America/Port_of_Spain", logger=None):
 
 def create_event(date, time, title, status, location, description, logger=None):
     # Log the time input for debugging
-    if logger:
-        logger.debug(f"Raw time data: {time}")
+    # if logger:
+    #     logger.debug(f"Raw time data: {time}")
 
     # Manually replace a.m. and p.m. with AM and PM for proper parsing
     time = re.sub(r"\s*a\.m\.\s*", " AM", time, flags=re.IGNORECASE)
     time = re.sub(r"\s*p\.m\.\s*", " PM", time, flags=re.IGNORECASE)
 
     # Log the cleaned time for debugging
-    if logger:
-        logger.debug(f"Cleaned time data: {time}")
+    # if logger:
+    #     logger.debug(f"Cleaned time data: {time}")
 
     # If the time includes a range (e.g., "9:00 AM to 3:00 PM"), split it into start and end times
     if "to" in time:
@@ -49,8 +49,8 @@ def create_event(date, time, title, status, location, description, logger=None):
         end_time = time  # If no range, use the same time for start and end
 
     # Log the split times for debugging
-    if logger:
-        logger.debug(f"Start time: {start_time}, End time: {end_time}")
+    # if logger:
+    #     logger.debug(f"Start time: {start_time}, End time: {end_time}")
 
     # Ensure time is in a proper format, adding AM/PM if missing
     for t in [start_time, end_time]:
@@ -65,8 +65,8 @@ def create_event(date, time, title, status, location, description, logger=None):
                 t = f"{t} PM"  # Default to PM if the hour is 12 or greater
 
         # Log the finalized time for debugging
-        if logger:
-            logger.debug(f"Final time with AM/PM: {t}")
+        # if logger:
+        #     logger.debug(f"Final time with AM/PM: {t}")
 
     # Combine date and time to create a datetime object
     try:
@@ -74,8 +74,8 @@ def create_event(date, time, title, status, location, description, logger=None):
         end = datetime.strptime(f"{date} {end_time}", "%d/%m/%Y %I:%M %p")
         
         # Log the finalized time for debugging
-        if logger:
-            logger.debug(f"Start time: {start}, End time: {end}")
+        # if logger:
+        #     logger.debug(f"Start time: {start}, End time: {end}")
     except ValueError as e:
         # In case of a parsing issue, log it and skip this entry
         if logger:
