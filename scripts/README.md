@@ -25,7 +25,8 @@ This folder holds the helper scripts used by the Termux + proot runtime.
 5. Start the boot hooks with `termux-boot` or reboot the phone.
 
 ## What each script does
-- `install_termux.sh` — installs the required Termux packages, creates the local config, and wires the boot/notification hooks.
+- `install_termux.sh` — thin entrypoint that delegates the runtime setup to the staged helpers under `install/`.
+- `install/*.sh` — stage-based setup flow for package install, boot hooks, proot bootstrap, Python env, and local config.
 - `tt_notify_bridge.py` — lightweight HTTP bridge used by the proot runner to show toasts and notifications via Termux API.
 - `proot_startup.sh` — proot-side launcher that starts the runner in tmux or nohup.
 - `proot_sshd_commands.sh` and `proot_start-sshd-once.sh` — SSH service helpers for the Ubuntu proot session.
