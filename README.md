@@ -40,15 +40,31 @@ scrape keywords, schedule, and recipient list (defined in `.env`).
 ## ⚙️ Setup
 
 ### 1. Clone and install dependencies
-- cd to your preferred installation location
+On the phone, install the base tools first:
+
 ``` bash
-git clone https://github.com/yourname/service-outage-monitor.git
-cd service-outage-monitor
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+pkg update -y
+pkg install -y git openssh python proot-distro termux-api termux-tools tmux curl
 ```
 
+Then clone the repo and enter it:
+
+``` bash
+git clone https://github.com/skitzofrenzy/service-outage-monitor.git
+cd service-outage-monitor
+```
+
+If you prefer to use the repo from a different location, replace the clone URL with your fork.
+
 ### Termux-first setup (recommended)
+
+## Prerequisites
+This application is built to run inside the Termux environment on Android. 
+You will need to have Termux installed on your device. 
+
+* Official Project: [Termux GitHub Repository/Releases](https://github.com/termux/termux-app/releases)
+* Installation: It is recommended to download Termux via F-Droid or their GitHub releases, as the Google Play Store version is deprecated.
+
 If you are installing this on a real Android/Termux device, run the installer from the cloned repo:
 
 ``` bash
@@ -57,6 +73,8 @@ bash scripts/install_termux.sh
 
 This script:
 - detects Termux and asks before installing missing packages
+- installs `git`, `openssh`, `python`, `proot-distro`, `termux-api`, `tmux`, and `curl` if needed
+- starts Termux SSHD and reminds you to set a Termux password with `passwd`
 - creates `config/config.yaml` from the example template if it does not exist yet
 - installs the Termux boot + notification helpers
 - copies the Termux boot files and notification bridge into the correct Termux locations
@@ -177,15 +195,14 @@ Each run will scrape, generate the `.ics`, and email results.
 
 ### 🔁 Automatic restart (Termux/Ubuntu)
 
-Use the included `scripts/start_runner.sh`:
+The boot hooks installed by `scripts/install_termux.sh` are what keep the runner alive on phone boot.
+If you want to test the runner manually from Termux, use:
 
 ``` bash
-bash scripts/start_runner.sh
+python runner.py
 ```
 
-It will: - Keep the runner alive in a loop. - Write logs under
-`~/projects/logs/outage-runner/`. - Auto-restart if it crashes or the
-phone restarts (via Termux:Boot or cron).
+The boot scripts under `~/.termux/boot/` will then start the proot/Ubuntu session automatically after reboot.
 
 ------------------------------------------------------------------------
 
