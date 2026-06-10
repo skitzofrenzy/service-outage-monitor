@@ -48,7 +48,28 @@ python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+### Termux-first setup (recommended)
+If you are installing this on a real Android/Termux device, run the installer from the cloned repo:
+
+``` bash
+bash scripts/install_termux.sh
+```
+
+This script:
+- detects Termux and asks before installing missing packages
+- creates `config/config.yaml` from the example template if it does not exist yet
+- installs the Termux boot + notification helpers
+- copies the Termux boot files and notification bridge into the correct Termux locations
+- creates/updates the project venv and `.env` template
+- prepares the proot/Ubuntu bootstrap files for the first boot
+
 ### 2. Configure your environment
+
+Copy and edit your local config file (this file is gitignored and should hold your real provider keywords):
+
+``` bash
+cp config/config.example.yaml config/config.yaml
+```
 
 Copy and edit your `.env` file:
 
@@ -111,6 +132,14 @@ websites:
 ------------------------------------------------------------------------
 
 ## 🚀 Running the App
+
+### Termux boot workflow
+1. Run `bash scripts/install_termux.sh` from the repo.
+2. Confirm the package and boot helper prompts when asked.
+3. Open Termux once and allow the requested permissions so `termux-boot` and `termux-notification` can start.
+4. Reboot the phone or launch `termux-boot` manually to start the Ubuntu/proot runtime.
+5. The installer will print the SSH/proot startup guidance and the IP-check commands to use after the first boot.
+
 
 ### ▶ Manual one-time run
 

@@ -105,32 +105,43 @@ def _run_provider_impl(provider: dict):
     status_inactive_keyword = provider.get("status_inactive_keyword", "CANCELLED")
 
     recipients = recipients_for_provider(provider_id) if provider_id else []
+    logger.info(f"[{title}] provider_id={provider_id}, recipients_count={len(recipients)}")
     if not recipients:
         logger.error(f"[{title}] No recipients for provider_id={provider_id}. Skipping email.")
         notify(f"{title}", f"⚠️ No recipients • start {fmt_ts(t_start)}", "default")
-    else:
-        logger.info(f"[{title}] recipients={len(recipients)}")
+        return
 
     logger.info(f"[{title}] Starting scrape {url}")
     toast(f"[{title}] started @ {t_start.strftime('%H:%M:%S')}")
 
-    outages = scrape_outages(url, area_keywords, location_keywords, status_inactive_keyword)
+    try:
+        outages = scrape_outages(url, area_keywords, location_keywords, status_inactive_keyword)
+        logger.info(f"[{title}] Scraped {len(outages)} raw outage(s)")
+    except Exception as e:
+        logger.exception(f"[{title}] Scraping failed: {e}")
+        raise
 
     events = []
     for o in outages:
-        ev = create_event(
-            date=o["date"],
-            time=o["time"],
-            title=title,
-            status=o["status"],
-            location=o["location"],
-            description=o["description"],
-            logger=logger
-        )
-        if ev:
-            ev["date_str"] = o["date"]
-            ev["status"] = o["status"]
-            events.append(ev)
+        try:
+            ev = create_event(
+                date=o["date"],
+                time=o["time"],
+                title=title,
+                status=o["status"],
+                location=o["location"],
+                description=o["description"],
+                logger=logger
+            )
+            if ev:
+                ev["date_str"] = o["date"]
+                ev["status"] = o["status"]
+                events.append(ev)
+                logger.debug(f"[{title}] Event created: {o['location']} on {o['date']}")
+            else:
+                logger.debug(f"[{title}] Event creation returned None for {o['location']}")
+        except Exception as e:
+            logger.warning(f"[{title}] Failed to create event for {o.get('location', 'unknown')}: {e}")
 
     if not events:
         t_end = now_tt()
@@ -139,9 +150,16 @@ def _run_provider_impl(provider: dict):
         notify(f"{title}", f"ℹ️ No events • {fmt_ts(t_start)} → {fmt_ts(t_end)} • {dur}", "low")
         return
 
+    logger.info(f"[{title}] Processing {len(events)} event(s) for email")
     ics_name = f"service_outage_{title.lower().replace(' ','_')}_{now_tt().strftime('%Y%m%d')}.ics"
     ics_path = os.path.expanduser(f"./logs/{ics_name}")
-    save_ics_file(events, ics_path, logger=logger)
+    
+    try:
+        save_ics_file(events, ics_path, logger=logger)
+        logger.info(f"[{title}] ICS file saved to {ics_path}")
+    except Exception as e:
+        logger.exception(f"[{title}] Failed to save ICS file: {e}")
+        raise
 
     table_html = format_events_as_html(events)
     crit_html = format_criteria_table([(title, url, area_keywords, location_keywords)])
@@ -153,13 +171,19 @@ def _run_provider_impl(provider: dict):
         "<p>Best regards,<br/>Service Outage Monitor</p>"
     )
 
-    send_email_with_attachment(
-        subject=subject,
-        body_html=body_html,
-        attachment_path=ics_path,
-        recipients=recipients,
-        logger=logger
-    )
+    logger.info(f"[{title}] Sending email to {len(recipients)} recipient(s): {recipients}")
+    try:
+        send_email_with_attachment(
+            subject=subject,
+            body_html=body_html,
+            attachment_path=ics_path,
+            recipients=recipients,
+            logger=logger
+        )
+        logger.info(f"[{title}] Email sent successfully")
+    except Exception as e:
+        logger.exception(f"[{title}] Email sending failed: {e}")
+        raise
 
     t_end = now_tt()
     dur = human_dur((t_end - t_start).total_seconds())
@@ -172,10 +196,12 @@ def _run_provider_impl(provider: dict):
 def run_provider(provider: dict):
     t0 = time.time()
     try:
+        logger.info(f"[{provider.get('title', 'Provider')}] JOB TRIGGERED")
         return _run_provider_impl(provider)
     except Exception as e:
         dt = time.time() - t0
         title = provider.get("title", "Provider")
+        logger.exception(f"[{title}] Job execution failed after {human_dur(dt)}")
         notify(title, f"❌ {type(e).__name__} • {human_dur(dt)}", "max", sticky=True)
         raise
 
@@ -225,6 +251,8 @@ def main():
     print("[runner] APScheduler started", flush=True)
     jobs = scheduler.get_jobs()
     logger.info("APScheduler started. Press Ctrl+C to exit. jobs=%d", len(jobs))
+    for job in jobs:
+        logger.info(f"  Job: {job.id} | Next run: {job.next_run_time}")
     notify("Outage Monitor", f"Scheduler started • {len(jobs)} job(s) • {fmt_ts(now_tt())}", "low")
 
     def _shutdown(signum, frame):

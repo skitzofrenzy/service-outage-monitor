@@ -1,5 +1,6 @@
 # main.py
 from datetime import datetime
+from pathlib import Path
 from html import escape
 import yaml
 
@@ -12,7 +13,17 @@ from src.mailer.email_format_util import format_events_as_html, format_criteria_
 
 logger = setup_logging("service-outage-monitor")
 
-def load_config(path="config/config.yaml"):
+def load_config(path=None):
+    base_dir = Path(__file__).resolve().parent.parent / "config"
+    if path is None:
+        local_path = base_dir / "config.yaml"
+        example_path = base_dir / "config.example.yaml"
+        if local_path.exists():
+            path = local_path
+        else:
+            path = example_path
+            logger.warning("No local config/config.yaml found; using example config instead.")
+
     with open(path, "r", encoding="utf-8") as f:
         return yaml.safe_load(f)
 

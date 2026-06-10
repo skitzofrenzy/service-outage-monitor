@@ -3,3 +3,4 @@ __pycache__
 .env
 secret
 logs
+config/config.yaml

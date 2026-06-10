@@ -1,4 +1,5 @@
-# config.yaml
+# Example provider config. Copy this to config/config.yaml on your phone.
+# config/config.yaml is gitignored and should hold your real keywords/recipients.
 websites:
   - id: "ttec_north_east"
     title: "TTEC"
@@ -7,20 +8,19 @@ websites:
       - "north"
       - "east"
     location_keywords:
-      - "Perseverance"
-      - "Moka"
-      - "Fernandez"
-      - "Saddle"
+      - "Example Area"
+      - "Example Town"
+      - "Example Road"
     status_inactive_keyword: "CANCELLED"
-    schedule: "0 6 * * mon,wed"
+    schedule: "20 22 * * *"
+
   - id: "ttec_east_only"
     title: "TTEC"
     url: "https://ttec.co.tt/cis/outages_public.html"
     area_keywords:
       - "east"
     location_keywords:
-      - "Hummingbird"
-      - "Ojoe"
-      - "Foster"
+      - "Example District"
+      - "Example Village"
     status_inactive_keyword: "CANCELLED"
-    schedule: "0 6 * * mon,wed"
+    schedule: "20 22 * * *"
