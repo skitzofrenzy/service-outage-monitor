@@ -9,6 +9,39 @@ BOOT_DIR="$TERMUX_HOME/.termux/boot"
 LOCAL_BIN="$TERMUX_HOME/.local/bin"
 LOG_DIR="$TERMUX_HOME/logs"
 PROJECT_DIR="$TERMUX_HOME/projects/apps/service-outage-monitor"
+BACKUP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/service-outage-monitor-install.XXXXXX")"
+VENV_CREATED=0
+CONFIG_CREATED=0
+ENV_CREATED=0
+BOOT_HELPER_CREATED=0
+PROOT_HELPER_CREATED=0
+
+cleanup_on_error() {
+  local exit_code=${1:-$?}
+  if [[ $exit_code -eq 0 ]]; then
+    return 0
+  fi
+
+  echo "[install] Setup failed (exit $exit_code); cleaning up partial changes..." >&2
+  if [[ $VENV_CREATED -eq 1 && -d "$REPO_ROOT/.venv" ]]; then
+    rm -rf "$REPO_ROOT/.venv"
+  fi
+  if [[ $CONFIG_CREATED -eq 1 && -f "$REPO_ROOT/config/config.yaml" ]]; then
+    rm -f "$REPO_ROOT/config/config.yaml"
+  fi
+  if [[ $ENV_CREATED -eq 1 && -f "$REPO_ROOT/.env" ]]; then
+    rm -f "$REPO_ROOT/.env"
+  fi
+  if [[ $BOOT_HELPER_CREATED -eq 1 ]]; then
+    rm -f "$LOCAL_BIN/tt_notify_bridge.py" || true
+    rm -f "$BOOT_DIR/start.sh" "$BOOT_DIR/00_start_ubuntu_sshd.sh" "$BOOT_DIR/01_notify_bridge.sh" || true
+  fi
+  if [[ $PROOT_HELPER_CREATED -eq 1 ]]; then
+    rm -f "$TERMUX_HOME/startup.sh" "$TERMUX_HOME/sshd_commands.sh" "$TERMUX_HOME/start-sshd-once.sh" || true
+  fi
+  rm -rf "$BACKUP_DIR"
+}
+trap 'cleanup_on_error $?' ERR
 
 if ! command -v pkg >/dev/null 2>&1; then
   echo "[install] This installer must run inside Termux." >&2
@@ -45,10 +78,10 @@ if [[ ! -f "$REPO_ROOT/requirements.txt" ]]; then
   exit 1
 fi
 
-if prompt_yes_no "Install/update required Termux packages (pkg update + git/python/proot-distro/termux-api/termux-tools/tmux/openssh/curl)?"; then
+if prompt_yes_no "Install/update required Termux packages (pkg update + git/python/proot-distro/termux-api/termux-tools/tmux/openssh/curl/libxml2/libxslt)?"; then
   say "Running pkg update..."
   pkg update -y
-  pkg install -y git python proot-distro termux-api termux-tools tmux openssh curl
+  pkg install -y git python proot-distro termux-api termux-tools tmux openssh curl libxml2 libxslt libxml2-dev libxslt-dev pkg-config clang make
 fi
 
 if ! command -v git >/dev/null 2>&1; then
@@ -62,16 +95,23 @@ if ! command -v sshd >/dev/null 2>&1; then
 fi
 
 if prompt_yes_no "Install Termux boot support package too?"; then
-  pkg install -y termux-boot || true
+  if pkg list termux-boot >/dev/null 2>&1; then
+    pkg install -y termux-boot || true
+  else
+    say "termux-boot package is not available in this repo; skipping that optional step."
+  fi
 fi
 
 mkdir -p "$BOOT_DIR" "$LOCAL_BIN" "$LOG_DIR"
 
 say "Installing bridge helper to $LOCAL_BIN/tt_notify_bridge.py"
+mkdir -p "$LOCAL_BIN"
 cp "$REPO_ROOT/scripts/tt_notify_bridge.py" "$LOCAL_BIN/tt_notify_bridge.py"
 chmod +x "$LOCAL_BIN/tt_notify_bridge.py"
+BOOT_HELPER_CREATED=1
 
 say "Installing Termux boot files to $BOOT_DIR"
+mkdir -p "$BOOT_DIR"
 cp "$REPO_ROOT/scripts/termux_boot_start.sh" "$BOOT_DIR/start.sh"
 cp "$REPO_ROOT/scripts/termux_boot_00_start_ubuntu_sshd.sh" "$BOOT_DIR/00_start_ubuntu_sshd.sh"
 cp "$REPO_ROOT/scripts/termux_boot_01_notify_bridge.sh" "$BOOT_DIR/01_notify_bridge.sh"
@@ -82,6 +122,7 @@ cp "$REPO_ROOT/scripts/proot_startup.sh" "$TERMUX_HOME/startup.sh"
 cp "$REPO_ROOT/scripts/proot_sshd_commands.sh" "$TERMUX_HOME/sshd_commands.sh"
 cp "$REPO_ROOT/scripts/proot_start-sshd-once.sh" "$TERMUX_HOME/start-sshd-once.sh"
 chmod +x "$TERMUX_HOME/startup.sh" "$TERMUX_HOME/sshd_commands.sh" "$TERMUX_HOME/start-sshd-once.sh"
+PROOT_HELPER_CREATED=1
 
 say "Checking proot distro availability"
 if command -v proot-distro >/dev/null 2>&1; then
@@ -89,9 +130,10 @@ if command -v proot-distro >/dev/null 2>&1; then
   if proot-distro list 2>/dev/null | grep -q "$distro_name"; then
     say "proot distro '$distro_name' is already installed."
   else
-    say "Installing proot distro '$distro_name' (fallback: ubuntu-focal / ubuntu-jammy)..."
+    say "Installing proot distro '$distro_name'..."
+    say "This can take several minutes. Keep Termux open and do not close it while the image downloads."
     if ! proot-distro install "$distro_name" 2>/dev/null; then
-      say "Primary distro install failed; trying ubuntu-focal..."
+      say "Primary distro install failed. Trying ubuntu-focal..."
       proot-distro install ubuntu-focal 2>/dev/null || proot-distro install ubuntu-jammy 2>/dev/null || true
     fi
   fi
@@ -115,18 +157,26 @@ if [[ ! -f "$REPO_ROOT/requirements.txt" ]]; then
 fi
 
 say "Creating a local virtualenv for the project"
-python -m venv "$REPO_ROOT/.venv" || python3 -m venv "$REPO_ROOT/.venv"
+if [[ ! -d "$REPO_ROOT/.venv" ]]; then
+  VENV_CREATED=1
+  say "This can take a few minutes because Python packages are being installed. Keep Termux open."
+  python -m venv "$REPO_ROOT/.venv" || python3 -m venv "$REPO_ROOT/.venv"
+else
+  say "Reusing existing .venv at $REPO_ROOT/.venv"
+fi
 "$REPO_ROOT/.venv/bin/python" -m pip install --upgrade pip
 "$REPO_ROOT/.venv/bin/pip" install -r "$REPO_ROOT/requirements.txt"
 
 say "Preparing local config from the example template if needed"
 if [[ ! -f "$REPO_ROOT/config/config.yaml" ]]; then
+  CONFIG_CREATED=1
   cp "$REPO_ROOT/config/config.example.yaml" "$REPO_ROOT/config/config.yaml"
   echo "[install] Created $REPO_ROOT/config/config.yaml from the example template. Edit your real keywords here."
 fi
 
 say "Preparing .env from .env.example if it does not exist"
 if [[ ! -f "$REPO_ROOT/.env" ]]; then
+  ENV_CREATED=1
   cp "$REPO_ROOT/.env.example" "$REPO_ROOT/.env"
   echo "[install] Created $REPO_ROOT/.env. Edit SMTP and recipient settings before first run."
 fi

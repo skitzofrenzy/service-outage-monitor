@@ -73,6 +73,7 @@ bash scripts/install_termux.sh
 
 This script:
 - detects Termux and asks before installing missing packages
+- shows long-running steps clearly so you know not to close Termux during package / venv / proot image setup
 - installs `git`, `openssh`, `python`, `proot-distro`, `termux-api`, `tmux`, and `curl` if needed
 - starts Termux SSHD and reminds you to set a Termux password with `passwd`
 - creates `config/config.yaml` from the example template if it does not exist yet
