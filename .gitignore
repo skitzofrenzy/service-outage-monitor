@@ -4,3 +4,4 @@ __pycache__
 secret
 logs
 config/config.yaml
+.notes
