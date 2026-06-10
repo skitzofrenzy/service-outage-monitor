@@ -51,6 +51,16 @@ if prompt_yes_no "Install/update required Termux packages (pkg update + git/pyth
   pkg install -y git python proot-distro termux-api termux-tools tmux openssh curl
 fi
 
+if ! command -v git >/dev/null 2>&1; then
+  say "git is not available; installing it now..."
+  pkg install -y git
+fi
+
+if ! command -v sshd >/dev/null 2>&1; then
+  say "openssh is not available; installing it now..."
+  pkg install -y openssh
+fi
+
 if prompt_yes_no "Install Termux boot support package too?"; then
   pkg install -y termux-boot || true
 fi
@@ -75,11 +85,15 @@ chmod +x "$TERMUX_HOME/startup.sh" "$TERMUX_HOME/sshd_commands.sh" "$TERMUX_HOME
 
 say "Checking proot distro availability"
 if command -v proot-distro >/dev/null 2>&1; then
-  if ! proot-distro list 2>/dev/null | grep -q 'ubuntu-jammy'; then
-    say "Installing proot distro 'ubuntu-jammy'..."
-    proot-distro install ubuntu-jammy
+  distro_name="${TT_PROOT_DISTRO:-ubuntu}"
+  if proot-distro list 2>/dev/null | grep -q "$distro_name"; then
+    say "proot distro '$distro_name' is already installed."
   else
-    say "proot distro 'ubuntu-jammy' is already installed."
+    say "Installing proot distro '$distro_name' (fallback: ubuntu-focal / ubuntu-jammy)..."
+    if ! proot-distro install "$distro_name" 2>/dev/null; then
+      say "Primary distro install failed; trying ubuntu-focal..."
+      proot-distro install ubuntu-focal 2>/dev/null || proot-distro install ubuntu-jammy 2>/dev/null || true
+    fi
   fi
 else
   echo "[install] proot-distro not found after package install; please reopen Termux and rerun." >&2
@@ -117,11 +131,18 @@ if [[ ! -f "$REPO_ROOT/.env" ]]; then
   echo "[install] Created $REPO_ROOT/.env. Edit SMTP and recipient settings before first run."
 fi
 
+say "Starting Termux SSHD for the first run"
+if command -v sshd >/dev/null 2>&1; then
+  sshd || true
+  echo "[install] Termux sshd started on port 8022."
+fi
+
 say "Boot helper installed. Next steps:"
-printf '  1. Open Termux once and allow the boot/notification permissions when prompted.\n'
-printf '  2. Reopen Termux and run: termux-boot  (or just reboot the phone).\n'
-printf '  3. Check the bridge with: python %s/tt_notify_bridge.py --token super-secret-change-me\n' "$LOCAL_BIN"
-printf '  4. To verify the proot SSH endpoint, run: proot-distro login ubuntu-jammy -- bash -lc "bash /root/start-sshd-once.sh"\n'
-printf '  5. Use this command to inspect the IP after the boot script runs: ifconfig 2>/dev/null | grep -Eo \"inet (addr:)?([0-9]{1,3}\.){3}[0-9]{1,3}\" | grep -v 127.0.0.1\n'
+printf '  1. If this is your first time, run: passwd\n'
+printf '  2. Open Termux once and allow the boot/notification permissions when prompted.\n'
+printf '  3. Reopen Termux and run: termux-boot  (or just reboot the phone).\n'
+printf '  4. Check the bridge with: python %s/tt_notify_bridge.py --token super-secret-change-me\n' "$LOCAL_BIN"
+printf '  5. To verify the proot SSH endpoint, run: proot-distro login ubuntu -- bash -lc "bash /root/start-sshd-once.sh"\n'
+printf '  6. To find your phone IP for SSH: ip addr show 2>/dev/null | grep -Eo "inet ([0-9]{1,3}\\.){3}[0-9]{1,3}" | grep -v 127.0.0.1\n'
 
 say "Installer finished."
