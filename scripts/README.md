@@ -17,6 +17,7 @@ This folder holds the helper scripts used by the Termux + proot runtime.
    ```bash
    bash scripts/install_termux.sh
    ```
+   This can take several minutes for package updates, the Python virtualenv, and the proot image. Keep Termux open while it runs.
 4. Set a Termux password once with:
    ```bash
    passwd
